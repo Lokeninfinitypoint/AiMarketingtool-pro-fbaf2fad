@@ -88,13 +88,12 @@ export const authService = {
     try {
       console.log('[OAuth] Starting Google OAuth via Appwrite SDK...');
 
-      // Use Appwrite's built-in OAuth2 session creation
-      // This opens a browser and handles the OAuth flow
+      // Use deep link scheme for mobile OAuth callback
+      // IMPORTANT: Add "marketingtool" as a platform in Appwrite Console → Platforms → Add Platform
       const successUrl = 'marketingtool://oauth/success';
       const failureUrl = 'marketingtool://oauth/failure';
 
-      // Open browser for OAuth using WebBrowser
-      const oauthUrl = `${APPWRITE_ENDPOINT}/account/sessions/oauth2/google?project=${APPWRITE_PROJECT_ID}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}&scopes=email%20profile`;
+      const oauthUrl = `${APPWRITE_ENDPOINT}/account/sessions/oauth2/google?project=${APPWRITE_PROJECT_ID}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}`;
 
       console.log('[OAuth] Opening URL:', oauthUrl);
 
@@ -105,9 +104,8 @@ export const authService = {
       if (result.type === 'success' && result.url) {
         console.log('[OAuth] Callback URL:', result.url);
 
-        // Check if it's a success callback
+        // Parse callback URL for session data
         if (result.url.includes('oauth/success') || result.url.includes('secret=')) {
-          // Parse the URL for session tokens
           const urlParams = new URL(result.url);
           const secret = urlParams.searchParams.get('secret');
           const userId = urlParams.searchParams.get('userId');
@@ -120,7 +118,7 @@ export const authService = {
           }
         }
 
-        // Try to get existing session (OAuth might have set cookies)
+        // Check for existing session
         try {
           console.log('[OAuth] Checking for session...');
           const user = await account.get();
@@ -202,7 +200,7 @@ export const authService = {
       const successUrl = 'marketingtool://oauth/success';
       const failureUrl = 'marketingtool://oauth/failure';
 
-      const oauthUrl = `${APPWRITE_ENDPOINT}/account/sessions/oauth2/facebook?project=${APPWRITE_PROJECT_ID}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}&scopes=email%20public_profile`;
+      const oauthUrl = `${APPWRITE_ENDPOINT}/account/sessions/oauth2/facebook?project=${APPWRITE_PROJECT_ID}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}`;
 
       const result = await WebBrowser.openAuthSessionAsync(oauthUrl, 'marketingtool://');
 
