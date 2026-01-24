@@ -22,6 +22,15 @@ import { Colors, Gradients, Spacing, BorderRadius, Shadow } from '../../constant
 import AnimatedBackground from '../../components/common/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
+
+const DashboardImages = {
+  aiRobot: require('../../assets/images/dashboard/ai-robot.jpg'),
+  aiDashboard: require('../../assets/images/dashboard/ai-dashboard.jpg'),
+  analyticsCharacter: require('../../assets/images/dashboard/analytics-character.jpg'),
+  seoRobot: require('../../assets/images/dashboard/seo-robot.jpg'),
+  webAnalytics: require('../../assets/images/dashboard/web-analytics.jpg'),
+};
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const DashboardScreen = () => {
@@ -41,7 +50,7 @@ const DashboardScreen = () => {
   };
 
   const stats = [
-    { label: 'AI Tools', value: '186+', icon: 'zap', color: Colors.secondary, badge: '+12 new' },
+    { label: 'AI Tools', value: '206+', icon: 'zap', color: Colors.secondary, badge: '+12 new' },
     { label: 'Generations', value: '∞', icon: 'layers', color: Colors.success, badge: 'Unlimited' },
     { label: 'Campaigns', value: '—', icon: 'target', color: Colors.accent, badge: 'Connect' },
     { label: 'Success', value: '98%', icon: 'trending-up', color: Colors.gold, badge: '+5%' },
@@ -88,12 +97,43 @@ const DashboardScreen = () => {
                 <Text style={styles.subGreeting}>Welcome back</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.notificationBtn}>
+            <TouchableOpacity
+              style={styles.notificationBtn}
+              onPress={() => navigation.navigate('Main', { screen: 'History' } as any)}
+            >
               <Feather name="bell" size={22} color={Colors.white} />
               <View style={styles.notificationDot} />
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* AI Hero Banner */}
+        <TouchableOpacity
+          style={styles.heroBanner}
+          onPress={() => navigation.navigate('Main', { screen: 'Chat' } as any)}
+          activeOpacity={0.9}
+        >
+          <Image
+            source={DashboardImages.aiRobot}
+            style={styles.heroImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(13, 15, 28, 0.8)', 'rgba(13, 15, 28, 0.95)']}
+            style={styles.heroGradient}
+          >
+            <View style={styles.heroContent}>
+              <Text style={styles.heroTitle}>AI Marketing Assistant</Text>
+              <Text style={styles.heroSubtitle}>
+                Create ads, blogs, emails & more with 206+ AI tools
+              </Text>
+              <View style={styles.heroButton}>
+                <Text style={styles.heroButtonText}>Start Creating</Text>
+                <Feather name="arrow-right" size={16} color={Colors.white} />
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
 
         {/* Premium Banner */}
         <TouchableOpacity
@@ -300,6 +340,51 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.secondary,
+  },
+  heroBanner: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    height: 180,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: Spacing.md,
+  },
+  heroContent: {
+    alignItems: 'flex-start',
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: Colors.white,
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  heroButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: 6,
+  },
+  heroButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.white,
   },
   premiumBanner: {
     marginHorizontal: Spacing.lg,
