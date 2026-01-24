@@ -153,9 +153,36 @@ eas build --platform ios --profile production
 
 ---
 
+## SSH FINDINGS (CONFIRMED)
+
+Connected to `api.marketingtool.pro` successfully!
+
+**Appwrite Docker containers running:**
+- appwrite (main)
+- appwrite-console
+- appwrite-worker-builds
+- appwrite-worker-stats-resources
+- appwrite-task-scheduler-*
+
+**Error logs found:**
+```
+[Error] URL: /v1/account/sessions/oauth2/:provider
+[Error] Message: This provider is disabled. Please enable the provider from your Appwrite console to continue.
+```
+
+**Analysis:** Provider shows ENABLED in Appwrite Console UI but returns "disabled" error.
+Possible causes:
+1. Cache issue - try restarting Appwrite container
+2. Provider credentials invalid/mismatched
+3. Platform (iOS/Android) not properly linked to OAuth
+
+**Try:** `docker restart appwrite` on server
+
+---
+
 ## NEXT AGENT TASKS
 
-1. SSH into `api.marketingtool.pro` and check Appwrite container logs for OAuth error
+1. ~~SSH into `api.marketingtool.pro` and check Appwrite container logs for OAuth error~~ DONE
 2. Find correct Google OAuth Client ID that matches Appwrite
 3. Or create new Google OAuth client for mobile with correct redirect URI
 4. Test Google login on phone app
