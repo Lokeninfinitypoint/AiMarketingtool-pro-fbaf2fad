@@ -129,8 +129,7 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Allow MarketingTool to use your location."
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "extra": {
       "appwriteEndpoint": "https://api.marketingtool.pro/v1",
