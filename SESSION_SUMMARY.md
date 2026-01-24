@@ -21,7 +21,11 @@
 **AI Backend:** Windmill
 - URL: `https://wm.marketingtool.pro`
 - Workspace: `marketingtool-pro`
-- Token: `FeMBZxek4_UvIVq9PE0m4Y-cPynHTWtLZmiZshBO`
+- Token: `wm_token_marketingtool_2024`
+
+**Expo Access Token:** `FeMBZxek4_UvIVq9PE0m4Y-cPynHTWtLZmiZshBO`
+- Used for: EAS builds, push notifications
+- Set as env: `EXPO_TOKEN=FeMBZxek4_UvIVq9PE0m4Y-cPynHTWtLZmiZshBO`
 - AI: Claude Opus 4.5
 
 **Web App (SEPARATE):** Next.js at `app.marketingtool.pro` - WORKING ✅
@@ -132,7 +136,7 @@ const result = await WebBrowser.openAuthSessionAsync(oauthUrl, 'marketingtool://
 ```typescript
 const WINDMILL_BASE = 'https://wm.marketingtool.pro';
 const WINDMILL_WORKSPACE = 'marketingtool-pro';
-const WINDMILL_TOKEN = 'FeMBZxek4_UvIVq9PE0m4Y-cPynHTWtLZmiZshBO';
+const WINDMILL_TOKEN = 'wm_token_marketingtool_2024';
 
 fetch(`${WINDMILL_BASE}/api/w/${WINDMILL_WORKSPACE}/jobs/run_wait_result/p/f/mobile/chat_ai`, {
   headers: { 'Authorization': `Bearer ${WINDMILL_TOKEN}` }
