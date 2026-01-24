@@ -243,31 +243,102 @@ const ChatScreen = () => {
     setIsTyping(true);
     scrollToBottom();
 
-    setTimeout(() => {
+    try {
+      // Call REAL Windmill AI
+      const response = await callWindmillChat(messageText, messages);
+
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: generateMockResponse(messageText),
+        content: response,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error('[Chat] AI Error:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsTyping(false);
       scrollToBottom();
-    }, 1500);
+    }
   };
 
-  const generateMockResponse = (prompt: string): string => {
-    const responses: Record<string, string> = {
-      default: `Great question! Here's what I recommend:\n\n🎯 **Key Points:**\n• Focused on your target audience\n• Engaging and action-oriented\n• Optimized for conversions\n\nWould you like me to elaborate on any of these points?`,
-      ad: `Here's a compelling ad copy for you:\n\n📱 **Facebook Ad Copy:**\n\n"Transform your fitness journey today! 💪\n\nOur app makes working out fun, effective, and personalized.\n\n✅ AI-powered workout plans\n✅ Progress tracking\n✅ Expert guidance\n\nJoin 500K+ users!\n\n👉 Download FREE today!"\n\nWant variations?`,
-      email: `Here are 5 email subject lines:\n\n1. 🚀 It's Finally Here: [Product] is Live!\n2. You're Invited: Be First to Experience [Product]\n3. The Wait is Over - Introducing [Product]\n4. 🎉 Launch Day: Get 20% Off\n5. [Product] Just Dropped!\n\nWhich style works best?`,
-      strategy: `Here's a marketing strategy outline:\n\n📊 **Launch Strategy:**\n\n**Phase 1 - Pre-Launch (2 weeks)**\n• Build email waitlist\n• Teaser content on social\n• Influencer outreach\n\n**Phase 2 - Launch Week**\n• Email blast to waitlist\n• Social media campaign\n• PR outreach\n\n**Phase 3 - Post-Launch**\n• User testimonials\n• Retargeting ads\n• Content marketing\n\nWant me to detail any phase?`,
-    };
+  // REAL Windmill AI Chat Function
+  const callWindmillChat = async (userMessage: string, history: Message[]): Promise<string> => {
+    const WINDMILL_BASE = 'https://wm.marketingtool.pro';
+    const WINDMILL_WORKSPACE = 'marketingtool-pro';
+    const WINDMILL_TOKEN = 'wm_token_marketingtool_2024';
 
-    if (prompt.toLowerCase().includes('ad')) return responses.ad;
-    if (prompt.toLowerCase().includes('email')) return responses.email;
-    if (prompt.toLowerCase().includes('strategy')) return responses.strategy;
-    return responses.default;
+    // Build conversation history for context
+    const conversationHistory = history.slice(-10).map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const systemPrompt = `You are MarketBot, an expert AI marketing assistant for MarketingTool.pro.
+You help users with:
+- Writing ad copy (Google Ads, Facebook, Instagram)
+- Marketing strategies and campaigns
+- Email marketing and subject lines
+- Social media content
+- SEO optimization
+- E-commerce product descriptions
+
+Be helpful, specific, and provide actionable advice. Use formatting with bullet points and sections when appropriate.`;
+
+    try {
+      const response = await fetch(
+        `${WINDMILL_BASE}/api/w/${WINDMILL_WORKSPACE}/jobs/run_wait_result/p/f/mobile/chat_ai`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${WINDMILL_TOKEN}`,
+          },
+          body: JSON.stringify({
+            system_prompt: systemPrompt,
+            user_message: userMessage,
+            conversation_history: conversationHistory,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return result.response || result.content || result;
+    } catch (error) {
+      console.error('[Chat] Windmill error:', error);
+      // Fallback to helpful response
+      return generateFallbackResponse(userMessage);
+    }
+  };
+
+  // Fallback when API is unavailable
+  const generateFallbackResponse = (prompt: string): string => {
+    const lowerPrompt = prompt.toLowerCase();
+
+    if (lowerPrompt.includes('ad') || lowerPrompt.includes('copy')) {
+      return `Here's a compelling ad framework for you:\n\n📱 **Ad Copy Structure:**\n\n**Hook:** Grab attention in the first line\n**Problem:** Address the pain point\n**Solution:** Present your offer\n**Proof:** Add social proof or benefits\n**CTA:** Clear call to action\n\nWant me to write specific copy? Tell me about your product!`;
+    }
+
+    if (lowerPrompt.includes('email') || lowerPrompt.includes('subject')) {
+      return `Here are 5 high-converting email subject lines:\n\n1. 🚀 [Benefit] in just [Timeframe]\n2. Don't miss: [Offer] ends tonight\n3. Quick question about [Topic]...\n4. You're invited: [Event/Offer]\n5. The #1 mistake in [Industry]\n\nWhich style fits your campaign?`;
+    }
+
+    if (lowerPrompt.includes('strategy') || lowerPrompt.includes('plan')) {
+      return `Here's a marketing strategy framework:\n\n📊 **Marketing Plan:**\n\n**1. Define Goals**\n• Revenue targets\n• Lead generation\n• Brand awareness\n\n**2. Know Your Audience**\n• Demographics\n• Pain points\n• Buying behavior\n\n**3. Choose Channels**\n• Paid ads\n• Content marketing\n• Social media\n• Email\n\n**4. Create Content**\n• Value-driven\n• Consistent brand\n• Clear CTAs\n\nWant me to dive deeper into any area?`;
+    }
+
+    return `Great question! As your AI marketing assistant, I can help you with:\n\n🎯 **What I Do Best:**\n• Write compelling ad copy\n• Create marketing strategies\n• Generate email campaigns\n• Optimize for conversions\n• Social media content\n\nWhat specific marketing challenge can I help you solve today?`;
   };
 
   const handlePromptPress = (prompt: string) => {

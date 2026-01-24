@@ -140,7 +140,13 @@ const DashboardScreen = () => {
               <TouchableOpacity
                 key={index}
                 style={styles.quickActionBtn}
-                onPress={() => navigation.navigate('Main' as any)}
+                onPress={() => {
+                  if (action.screen === 'MemeGenerator') {
+                    navigation.navigate('MemeGenerator');
+                  } else if (action.screen === 'Chat' || action.screen === 'Tools' || action.screen === 'History') {
+                    navigation.navigate('Main', { screen: action.screen === 'Chat' ? 'Chat' : action.screen === 'Tools' ? 'Tools' : 'History' } as any);
+                  }
+                }}
               >
                 <View style={[styles.quickActionIcon, { backgroundColor: action.color + '15' }]}>
                   <Feather name={action.icon as any} size={24} color={action.color} />
@@ -155,7 +161,7 @@ const DashboardScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Categories</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Main' as any)}>
+            <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: 'Tools' } as any)}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
@@ -169,7 +175,7 @@ const DashboardScreen = () => {
               <TouchableOpacity
                 key={index}
                 style={styles.categoryCard}
-                onPress={() => navigation.navigate('Main' as any)}
+                onPress={() => navigation.navigate('Main', { screen: 'Tools' } as any)}
               >
                 <LinearGradient
                   colors={[Colors.card, Colors.surfaceLight]}
@@ -190,7 +196,7 @@ const DashboardScreen = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Popular Tools</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: 'Tools' } as any)}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
