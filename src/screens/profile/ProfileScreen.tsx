@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   Alert,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -16,6 +17,11 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import { useAuthStore } from '../../store/authStore';
 import { Colors, Gradients, Spacing, BorderRadius } from '../../constants/theme';
 import AnimatedBackground from '../../components/common/AnimatedBackground';
+
+const { width } = Dimensions.get('window');
+
+// Profile hero image
+const ProfileHeroImage = require('../../assets/images/screens/profile-hero.jpg');
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -83,8 +89,13 @@ const ProfileScreen = () => {
   return (
     <AnimatedBackground variant="profile" showParticles={true}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Hero Background */}
+        <View style={styles.heroSection}>
+          <Image source={ProfileHeroImage} style={styles.heroImage} resizeMode="cover" />
+          <LinearGradient
+            colors={['transparent', 'rgba(13, 15, 28, 0.6)', 'rgba(13, 15, 28, 1)']}
+            style={styles.heroGradient}
+          />
           <View style={styles.headerTop}>
             <Text style={styles.headerTitle}>Profile</Text>
             <TouchableOpacity
@@ -94,8 +105,10 @@ const ProfileScreen = () => {
               <Feather name="settings" size={22} color={Colors.white} />
             </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Profile Card */}
+        {/* Profile Card */}
+        <View style={styles.header}>
           <View style={styles.profileCard}>
             <View style={styles.avatarContainer}>
               {profile?.avatar ? (
@@ -250,17 +263,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  heroSection: {
+    height: 160,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  heroGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   header: {
-    paddingTop: 60,
     paddingBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
     backgroundColor: Colors.background,
+    marginTop: -40,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+    position: 'absolute',
+    top: 50,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 26,

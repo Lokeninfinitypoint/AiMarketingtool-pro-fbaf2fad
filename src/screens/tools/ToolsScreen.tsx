@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   TextInput,
   Dimensions,
   FlatList,
+  Image,
+  Animated,
+  Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -19,6 +22,12 @@ import { Colors, Gradients, Spacing, BorderRadius } from '../../constants/theme'
 import AnimatedBackground from '../../components/common/AnimatedBackground';
 
 const { width } = Dimensions.get('window');
+
+// Screen images
+const ScreenImages = {
+  toolsHero: require('../../assets/images/screens/tools-hero.jpg'),
+  marketingTools: require('../../assets/images/screens/marketing-tools.jpg'),
+};
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const ToolsScreen = () => {
@@ -105,17 +114,32 @@ const ToolsScreen = () => {
 
   return (
     <AnimatedBackground variant="tools" showParticles={true}>
+      {/* Hero Banner */}
+      <View style={styles.heroBanner}>
+        <Image source={ScreenImages.toolsHero} style={styles.heroImage} resizeMode="cover" />
+        <LinearGradient
+          colors={['transparent', 'rgba(13, 15, 28, 0.7)', 'rgba(13, 15, 28, 0.95)']}
+          style={styles.heroGradient}
+        >
+          <View style={styles.heroContent}>
+            <View style={styles.heroBadge}>
+              <Feather name="zap" size={12} color={Colors.gold} />
+              <Text style={styles.heroBadgeText}>206+ AI Tools</Text>
+            </View>
+            <Text style={styles.heroTitle}>AI Marketing Tools</Text>
+            <Text style={styles.heroSubtitle}>Google • Meta • Shopify</Text>
+          </View>
+        </LinearGradient>
+      </View>
+
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI Tools</Text>
-        <Text style={styles.headerSubtitle}>206+ tools across 3 platforms</Text>
-
         {/* Search */}
         <View style={styles.searchContainer}>
           <Feather name="search" size={20} color={Colors.textTertiary} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search tools..."
+            placeholder="Search 206+ tools..."
             placeholderTextColor={Colors.textTertiary}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -208,22 +232,56 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 60,
-    paddingBottom: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.background,
+  heroBanner: {
+    height: 180,
+    marginTop: 50,
+    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
   },
-  headerTitle: {
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: Spacing.lg,
+  },
+  heroContent: {
+    alignItems: 'flex-start',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(253, 151, 7, 0.2)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  heroBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.gold,
+  },
+  heroTitle: {
     fontSize: 26,
     fontWeight: 'bold',
     color: Colors.white,
     marginBottom: 4,
   },
-  headerSubtitle: {
+  heroSubtitle: {
     fontSize: 14,
     color: Colors.textSecondary,
-    marginBottom: Spacing.md,
+  },
+  header: {
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: Colors.background,
   },
   searchContainer: {
     flexDirection: 'row',

@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -16,6 +18,11 @@ import * as Clipboard from 'expo-clipboard';
 import { RootStackParamList } from '../../navigation/AppNavigator';
 import { Colors, Gradients, Spacing, BorderRadius } from '../../constants/theme';
 import AnimatedBackground from '../../components/common/AnimatedBackground';
+
+const { width } = Dimensions.get('window');
+
+// History hero image
+const HistoryHeroImage = require('../../assets/images/screens/history-hero.jpg');
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -209,12 +216,32 @@ const HistoryScreen = () => {
 
   return (
     <AnimatedBackground variant="dashboard" showParticles={true}>
-      {/* Header */}
-      <LinearGradient colors={Gradients.dark} style={styles.header}>
-        <Text style={styles.headerTitle}>History</Text>
-        <Text style={styles.headerSubtitle}>{historyItems.length} saved generations</Text>
+      {/* Hero Banner */}
+      <View style={styles.heroBanner}>
+        <Image source={HistoryHeroImage} style={styles.heroImage} resizeMode="cover" />
+        <LinearGradient
+          colors={['transparent', 'rgba(13, 15, 28, 0.8)', 'rgba(13, 15, 28, 0.98)']}
+          style={styles.heroGradient}
+        >
+          <View style={styles.heroContent}>
+            <Text style={styles.heroTitle}>Generation History</Text>
+            <View style={styles.heroStats}>
+              <View style={styles.heroStatItem}>
+                <Feather name="layers" size={16} color={Colors.secondary} />
+                <Text style={styles.heroStatText}>{historyItems.length} Saved</Text>
+              </View>
+              <View style={styles.heroStatDivider} />
+              <View style={styles.heroStatItem}>
+                <Feather name="heart" size={16} color={Colors.error} />
+                <Text style={styles.heroStatText}>{historyItems.filter(i => i.liked).length} Liked</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
 
-        {/* Search */}
+      {/* Search */}
+      <View style={styles.searchWrapper}>
         <View style={styles.searchContainer}>
           <Feather name="search" size={20} color={Colors.textTertiary} />
           <TextInput
@@ -230,7 +257,7 @@ const HistoryScreen = () => {
             </TouchableOpacity>
           ) : null}
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Filters */}
       <View style={styles.filtersContainer}>
@@ -295,21 +322,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    paddingTop: 60,
-    paddingBottom: Spacing.lg,
-    paddingHorizontal: Spacing.lg,
+  heroBanner: {
+    height: 180,
+    marginTop: 50,
+    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
   },
-  headerTitle: {
-    fontSize: 28,
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    padding: Spacing.lg,
+  },
+  heroContent: {
+    alignItems: 'flex-start',
+  },
+  heroTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.white,
-    marginBottom: 4,
+    marginBottom: Spacing.sm,
   },
-  headerSubtitle: {
+  heroStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroStatText: {
     fontSize: 14,
     color: Colors.textSecondary,
-    marginBottom: Spacing.lg,
+    fontWeight: '500',
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 16,
+    backgroundColor: Colors.border,
+    marginHorizontal: Spacing.md,
+  },
+  searchWrapper: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
   },
   searchContainer: {
     flexDirection: 'row',

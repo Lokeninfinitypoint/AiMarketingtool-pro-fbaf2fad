@@ -12,6 +12,7 @@ import {
   Animated,
   Dimensions,
   Easing,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -19,6 +20,10 @@ import { useNavigation } from '@react-navigation/native';
 import { Colors, Gradients, Spacing, BorderRadius } from '../../constants/theme';
 
 const { width } = Dimensions.get('window');
+
+// Chat bot image
+const ChatBotImage = require('../../assets/images/screens/chat-bot.jpg');
+const AiAssistantImage = require('../../assets/images/screens/ai-assistant.jpg');
 
 interface Message {
   id: string;
@@ -485,14 +490,20 @@ Be helpful, specific, and provide actionable advice. Use formatting with bullet 
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
-              {/* Animated Bot with Ripples */}
+              {/* AI Bot Image with Ripples */}
               <View style={styles.botSection}>
                 <AnimatedRipple />
-                <BotIcon size={100} animated={true} />
+                <View style={styles.botImageContainer}>
+                  <Image source={ChatBotImage} style={styles.botImage} resizeMode="cover" />
+                  <LinearGradient
+                    colors={['transparent', 'rgba(175, 21, 195, 0.3)']}
+                    style={styles.botImageOverlay}
+                  />
+                </View>
               </View>
 
               <Text style={styles.emptyTitle}>Hi, I'm MarketBot!</Text>
-              <Text style={styles.emptySubtitle}>Your AI Marketing Assistant</Text>
+              <Text style={styles.emptySubtitle}>Your AI Marketing Assistant powered by Claude</Text>
 
               {/* Tab Navigation */}
               <View style={styles.tabNav}>
@@ -762,7 +773,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xl,
-    height: 200,
+    height: 220,
   },
   rippleContainer: {
     position: 'absolute',
@@ -770,6 +781,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 280,
     height: 280,
+  },
+  botImageContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: '#C44569',
+    shadowColor: '#C44569',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  botImage: {
+    width: '100%',
+    height: '100%',
+  },
+  botImageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
   },
   botIcon: {
     justifyContent: 'center',

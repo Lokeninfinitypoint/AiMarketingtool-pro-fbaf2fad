@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  Image,
+  Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -14,6 +16,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { Colors, Gradients, Spacing, BorderRadius } from '../../constants/theme';
 import AnimatedBackground from '../../components/common/AnimatedBackground';
+
+const { width } = Dimensions.get('window');
+
+// Pricing hero image
+const PricingHeroImage = require('../../assets/images/screens/pricing-hero.jpg');
 
 interface PlanFeature {
   text: string;
@@ -152,20 +159,34 @@ const SubscriptionScreen = () => {
 
   return (
     <AnimatedBackground variant="profile" showParticles={true}>
-      {/* Header */}
-      <LinearGradient colors={Gradients.dark} style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Feather name="x" size={24} color={Colors.white} />
-          </TouchableOpacity>
-        </View>
+      {/* Hero Header with Image */}
+      <View style={styles.heroContainer}>
+        <Image source={PricingHeroImage} style={styles.heroImage} resizeMode="cover" />
+        <LinearGradient
+          colors={['rgba(13, 15, 28, 0.3)', 'rgba(13, 15, 28, 0.8)', 'rgba(13, 15, 28, 1)']}
+          style={styles.heroGradient}
+        >
+          <View style={styles.headerTop}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Feather name="x" size={24} color={Colors.white} />
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Choose Your Plan</Text>
-          <Text style={styles.headerSubtitle}>
-            7-day free trial on all paid plans. Cancel anytime.
-          </Text>
-        </View>
+          <View style={styles.headerContent}>
+            <View style={styles.pricingBadge}>
+              <Feather name="star" size={14} color={Colors.gold} />
+              <Text style={styles.pricingBadgeText}>7-Day Free Trial</Text>
+            </View>
+            <Text style={styles.headerTitle}>Choose Your Plan</Text>
+            <Text style={styles.headerSubtitle}>
+              Unlock all 206+ AI marketing tools. Cancel anytime.
+            </Text>
+          </View>
+        </LinearGradient>
+      </View>
+
+      {/* Header Billing Toggle */}
+      <View style={styles.header}>
 
         {/* Billing Toggle */}
         <View style={styles.billingToggle}>
@@ -189,7 +210,7 @@ const SubscriptionScreen = () => {
             </View>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         style={styles.content}
@@ -318,27 +339,55 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    paddingTop: 60,
-    paddingBottom: Spacing.xl,
+  heroContainer: {
+    height: 220,
+    position: 'relative',
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  heroGradient: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingTop: 50,
+    paddingBottom: Spacing.lg,
     paddingHorizontal: Spacing.lg,
+  },
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginBottom: Spacing.lg,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.surface,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerContent: {
     alignItems: 'center',
-    marginBottom: Spacing.lg,
+  },
+  pricingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(253, 151, 7, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  pricingBadgeText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.gold,
   },
   headerTitle: {
     fontSize: 28,
@@ -347,9 +396,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.textSecondary,
     textAlign: 'center',
+    lineHeight: 22,
   },
   billingToggle: {
     flexDirection: 'row',
