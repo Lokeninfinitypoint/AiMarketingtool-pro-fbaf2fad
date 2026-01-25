@@ -140,14 +140,77 @@ const BotIcon = ({ size = 80, animated = true }: { size?: number; animated?: boo
   );
 };
 
+// Chat capability tabs
+interface ChatCapability {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  description: string;
+  features: string[];
+}
+
 const ChatScreen = () => {
   const navigation = useNavigation();
   const scrollViewRef = useRef<ScrollView>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [activeTab, setActiveTab] = useState('chat');
   const typingAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Full chat capabilities - NOT shortcuts
+  const chatCapabilities: ChatCapability[] = [
+    {
+      id: 'ads',
+      name: 'Ad Creation',
+      icon: 'target',
+      color: '#FF6B6B',
+      description: 'Create ads for any platform',
+      features: ['Google Ads', 'Facebook Ads', 'Instagram Ads', 'TikTok Ads', 'LinkedIn Ads'],
+    },
+    {
+      id: 'content',
+      name: 'Content Writing',
+      icon: 'edit-3',
+      color: '#4ECDC4',
+      description: 'Write any marketing content',
+      features: ['Blog Posts', 'Product Descriptions', 'Landing Pages', 'Press Releases', 'Case Studies'],
+    },
+    {
+      id: 'email',
+      name: 'Email Marketing',
+      icon: 'mail',
+      color: '#FFE66D',
+      description: 'Create email campaigns',
+      features: ['Subject Lines', 'Welcome Series', 'Abandoned Cart', 'Newsletters', 'Promotional'],
+    },
+    {
+      id: 'social',
+      name: 'Social Media',
+      icon: 'share-2',
+      color: '#A78BFA',
+      description: 'Social content creation',
+      features: ['Instagram', 'Twitter/X', 'LinkedIn', 'TikTok', 'Facebook'],
+    },
+    {
+      id: 'seo',
+      name: 'SEO & Keywords',
+      icon: 'search',
+      color: '#34D399',
+      description: 'SEO optimization help',
+      features: ['Meta Tags', 'Keyword Research', 'Content Optimization', 'Schema Markup', 'Link Building'],
+    },
+    {
+      id: 'strategy',
+      name: 'Strategy',
+      icon: 'trending-up',
+      color: '#F472B6',
+      description: 'Marketing strategy advice',
+      features: ['Campaign Planning', 'Audience Analysis', 'Competitor Research', 'Budget Allocation', 'ROI Analysis'],
+    },
+  ];
 
   const suggestedPrompts: SuggestedPrompt[] = [
     {
@@ -429,45 +492,118 @@ Be helpful, specific, and provide actionable advice. Use formatting with bullet 
               </View>
 
               <Text style={styles.emptyTitle}>Hi, I'm MarketBot!</Text>
-              <Text style={styles.emptySubtitle}>How can I help you today?</Text>
+              <Text style={styles.emptySubtitle}>Your AI Marketing Assistant</Text>
 
-              {/* Input with gradient border */}
-              <Animated.View style={[styles.inputPreview, { transform: [{ scale: pulseAnim }] }]}>
-                <LinearGradient
-                  colors={['#C44569', '#6441A5']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.inputPreviewGradient}
+              {/* Tab Navigation */}
+              <View style={styles.tabNav}>
+                <TouchableOpacity
+                  style={[styles.tabItem, activeTab === 'chat' && styles.tabItemActive]}
+                  onPress={() => setActiveTab('chat')}
                 >
-                  <View style={styles.inputPreviewInner}>
-                    <Text style={styles.inputPreviewText}>Ask about marketing...</Text>
-                    <View style={styles.inputPreviewSend}>
-                      <Feather name="send" size={18} color={Colors.textSecondary} />
-                    </View>
-                  </View>
-                </LinearGradient>
-              </Animated.View>
-
-              {/* Suggested Prompts */}
-              <View style={styles.promptsGrid}>
-                {suggestedPrompts.map((prompt, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.promptCard}
-                    onPress={() => handlePromptPress(prompt.prompt)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.promptIcon, { backgroundColor: prompt.color + '20' }]}>
-                      <Feather name={prompt.icon as any} size={20} color={prompt.color} />
-                    </View>
-                    <View style={styles.promptTextContainer}>
-                      <Text style={styles.promptTitle}>{prompt.title}</Text>
-                      <Text style={styles.promptDescription}>{prompt.description}</Text>
-                    </View>
-                    <Text style={[styles.promptArrow, { color: prompt.color }]}>›</Text>
-                  </TouchableOpacity>
-                ))}
+                  <Feather name="message-circle" size={18} color={activeTab === 'chat' ? Colors.white : Colors.textSecondary} />
+                  <Text style={[styles.tabText, activeTab === 'chat' && styles.tabTextActive]}>Chat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tabItem, activeTab === 'capabilities' && styles.tabItemActive]}
+                  onPress={() => setActiveTab('capabilities')}
+                >
+                  <Feather name="grid" size={18} color={activeTab === 'capabilities' ? Colors.white : Colors.textSecondary} />
+                  <Text style={[styles.tabText, activeTab === 'capabilities' && styles.tabTextActive]}>Tools</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tabItem, activeTab === 'history' && styles.tabItemActive]}
+                  onPress={() => setActiveTab('history')}
+                >
+                  <Feather name="clock" size={18} color={activeTab === 'history' ? Colors.white : Colors.textSecondary} />
+                  <Text style={[styles.tabText, activeTab === 'history' && styles.tabTextActive]}>History</Text>
+                </TouchableOpacity>
               </View>
+
+              {activeTab === 'chat' && (
+                <>
+                  {/* Input with gradient border */}
+                  <Animated.View style={[styles.inputPreview, { transform: [{ scale: pulseAnim }] }]}>
+                    <LinearGradient
+                      colors={['#C44569', '#6441A5']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.inputPreviewGradient}
+                    >
+                      <View style={styles.inputPreviewInner}>
+                        <Text style={styles.inputPreviewText}>Ask about marketing...</Text>
+                        <View style={styles.inputPreviewSend}>
+                          <Feather name="send" size={18} color={Colors.textSecondary} />
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </Animated.View>
+
+                  {/* Quick Prompts */}
+                  <View style={styles.promptsGrid}>
+                    {suggestedPrompts.map((prompt, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.promptCard}
+                        onPress={() => handlePromptPress(prompt.prompt)}
+                        activeOpacity={0.7}
+                      >
+                        <View style={[styles.promptIcon, { backgroundColor: prompt.color + '20' }]}>
+                          <Feather name={prompt.icon as any} size={20} color={prompt.color} />
+                        </View>
+                        <View style={styles.promptTextContainer}>
+                          <Text style={styles.promptTitle}>{prompt.title}</Text>
+                          <Text style={styles.promptDescription}>{prompt.description}</Text>
+                        </View>
+                        <Text style={[styles.promptArrow, { color: prompt.color }]}>›</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              )}
+
+              {activeTab === 'capabilities' && (
+                <View style={styles.capabilitiesGrid}>
+                  {chatCapabilities.map((cap, index) => (
+                    <TouchableOpacity
+                      key={cap.id}
+                      style={styles.capabilityCard}
+                      onPress={() => handlePromptPress(`Help me with ${cap.name.toLowerCase()}: ${cap.features[0]}`)}
+                      activeOpacity={0.8}
+                    >
+                      <LinearGradient
+                        colors={[cap.color + '30', cap.color + '10']}
+                        style={styles.capabilityGradient}
+                      >
+                        <View style={[styles.capabilityIconContainer, { backgroundColor: cap.color + '25' }]}>
+                          <Feather name={cap.icon as any} size={24} color={cap.color} />
+                        </View>
+                        <Text style={styles.capabilityName}>{cap.name}</Text>
+                        <Text style={styles.capabilityDesc}>{cap.description}</Text>
+                        <View style={styles.capabilityFeatures}>
+                          {cap.features.slice(0, 3).map((feat, i) => (
+                            <View key={i} style={[styles.featureTag, { borderColor: cap.color + '40' }]}>
+                              <Text style={[styles.featureText, { color: cap.color }]}>{feat}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+
+              {activeTab === 'history' && (
+                <View style={styles.historySection}>
+                  <View style={styles.historyEmpty}>
+                    <Feather name="message-square" size={48} color={Colors.textTertiary} />
+                    <Text style={styles.historyEmptyText}>No chat history yet</Text>
+                    <Text style={styles.historyEmptySubtext}>Start a conversation to see your history</Text>
+                    <TouchableOpacity style={styles.startChatBtn} onPress={() => setActiveTab('chat')}>
+                      <Text style={styles.startChatBtnText}>Start Chatting</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
             </View>
           ) : (
             <>
@@ -832,6 +968,119 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: Colors.secondary + '50',
+  },
+  // Tab Navigation Styles
+  tabNav: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: 4,
+    marginBottom: Spacing.lg,
+    width: width - 48,
+  },
+  tabItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: BorderRadius.md,
+    gap: 6,
+  },
+  tabItemActive: {
+    backgroundColor: Colors.secondary,
+  },
+  tabText: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    fontWeight: '500',
+  },
+  tabTextActive: {
+    color: Colors.white,
+  },
+  // Capabilities Grid
+  capabilitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: width - 48,
+    gap: Spacing.md,
+  },
+  capabilityCard: {
+    width: (width - 48 - Spacing.md) / 2,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    marginBottom: Spacing.xs,
+  },
+  capabilityGradient: {
+    padding: Spacing.md,
+    minHeight: 160,
+  },
+  capabilityIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  capabilityName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.white,
+    marginBottom: 4,
+  },
+  capabilityDesc: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  capabilityFeatures: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  featureTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+  },
+  featureText: {
+    fontSize: 10,
+    fontWeight: '500',
+  },
+  // History Section
+  historySection: {
+    width: width - 48,
+    paddingVertical: Spacing.xl,
+  },
+  historyEmpty: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xxl,
+  },
+  historyEmptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.white,
+    marginTop: Spacing.md,
+  },
+  historyEmptySubtext: {
+    fontSize: 14,
+    color: Colors.textSecondary,
+    marginTop: Spacing.xs,
+  },
+  startChatBtn: {
+    marginTop: Spacing.lg,
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+  },
+  startChatBtnText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
 

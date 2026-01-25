@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,28 +10,137 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  Animated,
+  Dimensions,
+  Easing,
+  Image,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as LocalAuthentication from 'expo-local-authentication';
+import LottieView from 'lottie-react-native';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
 import { useAuthStore } from '../../store/authStore';
 import { Colors, Gradients, Spacing, BorderRadius } from '../../constants/theme';
 import AnimatedBackground from '../../components/common/AnimatedBackground';
 
+const { width, height } = Dimensions.get('window');
+
+// Login method options
+interface LoginMethod {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+  gradient: string[];
+  description: string;
+}
+
+const loginMethods: LoginMethod[] = [
+  {
+    id: 'google',
+    name: 'Google',
+    icon: 'chrome',
+    color: '#4285F4',
+    gradient: ['#4285F4', '#34A853'],
+    description: 'Sign in with your Google account',
+  },
+  {
+    id: 'apple',
+    name: 'Apple',
+    icon: 'command',
+    color: '#000000',
+    gradient: ['#1D1D1F', '#555555'],
+    description: 'Sign in with your Apple ID',
+  },
+  {
+    id: 'facebook',
+    name: 'Facebook',
+    icon: 'facebook',
+    color: '#1877F2',
+    gradient: ['#1877F2', '#3B5998'],
+    description: 'Sign in with Facebook',
+  },
+  {
+    id: 'email',
+    name: 'Email',
+    icon: 'mail',
+    color: '#FF6B6B',
+    gradient: ['#FF6B6B', '#EE5A5A'],
+    description: 'Sign in with email & password',
+  },
+  {
+    id: 'biometric',
+    name: 'Face ID',
+    icon: 'smartphone',
+    color: '#34D399',
+    gradient: ['#34D399', '#10B981'],
+    description: 'Use Face ID or Touch ID',
+  },
+];
+
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList>;
 
 const LoginScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { login, loginWithGoogle, loginWithApple, isLoading, error, clearError } = useAuthStore();
+  const { login, loginWithGoogle, loginWithApple, loginWithFacebook, isLoading, error, clearError } = useAuthStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+
+  // Animations
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const scaleAnim = useRef(new Animated.Value(0.95)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Entrance animations
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        easing: Easing.out(Easing.back(1.2)),
+        useNativeDriver: true,
+      }),
+      Animated.timing(scaleAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    // Pulse animation for logo
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.05,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -112,6 +221,40 @@ const LoginScreen = () => {
     }
   };
 
+  const handleFacebookLogin = async () => {
+    try {
+      if (loginWithFacebook) {
+        await loginWithFacebook();
+      } else {
+        Alert.alert('Coming Soon', 'Facebook login will be available soon');
+      }
+    } catch (err: any) {
+      Alert.alert('Facebook Login Failed', err.message);
+    }
+  };
+
+  const handleLoginMethod = (methodId: string) => {
+    setSelectedMethod(methodId);
+    switch (methodId) {
+      case 'google':
+        handleGoogleLogin();
+        break;
+      case 'apple':
+        handleAppleLogin();
+        break;
+      case 'facebook':
+        handleFacebookLogin();
+        break;
+      case 'email':
+        setShowEmailModal(true);
+        break;
+      case 'biometric':
+        handleBiometricAuth();
+        break;
+    }
+    setTimeout(() => setSelectedMethod(null), 1000);
+  };
+
   return (
     <AnimatedBackground variant="default" showParticles={true}>
       <KeyboardAvoidingView
@@ -123,103 +266,88 @@ const LoginScreen = () => {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.logoContainer}>
-              <View style={styles.logo}>
-                <View style={styles.logoInner}>
-                  <View style={styles.logoTopLeft} />
-                  <View style={styles.logoBottomRight} />
-                </View>
-              </View>
-            </View>
-            <Text style={styles.title}>Welcome Back</Text>
-            <Text style={styles.subtitle}>Sign in to continue</Text>
-          </View>
-
-          {/* Form */}
-          <View style={styles.form}>
-            <View style={[styles.inputContainer, emailError && styles.inputError]}>
-              <Feather name="mail" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Email address"
-                placeholderTextColor={Colors.textTertiary}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-
-            <View style={[styles.inputContainer, passwordError && styles.inputError]}>
-              <Feather name="lock" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={Colors.textTertiary}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.textTertiary} />
-              </TouchableOpacity>
-            </View>
-            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-
-            <TouchableOpacity
-              onPress={() => navigation.navigate('ForgotPassword')}
-              style={styles.forgotPassword}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleLogin} disabled={isLoading} style={styles.loginButton}>
+          {/* Animated Header */}
+          <Animated.View style={[styles.header, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}>
+            <Animated.View style={[styles.logoContainer, { transform: [{ scale: pulseAnim }] }]}>
               <LinearGradient
-                colors={[Colors.secondary, Colors.secondaryDark]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.loginButtonGradient}
+                colors={['#FF6B35', '#F7931E']}
+                style={styles.logoGradient}
               >
-                {isLoading ? (
-                  <ActivityIndicator color={Colors.white} />
-                ) : (
-                  <Text style={styles.loginButtonText}>Sign In</Text>
-                )}
+                <Feather name="zap" size={36} color={Colors.white} />
               </LinearGradient>
-            </TouchableOpacity>
+            </Animated.View>
+            <Text style={styles.title}>MarketingTool</Text>
+            <Text style={styles.subtitle}>206+ AI Marketing Tools</Text>
+          </Animated.View>
 
-            {/* Biometric Login */}
-            <TouchableOpacity onPress={handleBiometricAuth} style={styles.biometricButton}>
-              <Feather name="smartphone" size={22} color={Colors.secondary} />
-              <Text style={styles.biometricText}>Use Face ID / Touch ID</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Login Methods Grid */}
+          <Animated.View style={[styles.methodsSection, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}>
+            <Text style={styles.methodsTitle}>Choose how to sign in</Text>
+            <View style={styles.methodsGrid}>
+              {loginMethods.map((method, index) => {
+                // Skip Apple on Android
+                if (method.id === 'apple' && Platform.OS !== 'ios') return null;
 
-          {/* Social Login */}
-          <View style={styles.socialSection}>
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.dividerLine} />
+                return (
+                  <TouchableOpacity
+                    key={method.id}
+                    style={[
+                      styles.methodCard,
+                      selectedMethod === method.id && styles.methodCardActive
+                    ]}
+                    onPress={() => handleLoginMethod(method.id)}
+                    activeOpacity={0.8}
+                    disabled={isLoading}
+                  >
+                    <LinearGradient
+                      colors={method.gradient as [string, string]}
+                      style={styles.methodGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      {isLoading && selectedMethod === method.id ? (
+                        <ActivityIndicator color={Colors.white} size="small" />
+                      ) : (
+                        <Feather name={method.icon as any} size={28} color={Colors.white} />
+                      )}
+                    </LinearGradient>
+                    <Text style={styles.methodName}>{method.name}</Text>
+                    <Text style={styles.methodDesc} numberOfLines={1}>{method.description}</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
+          </Animated.View>
 
-            <View style={styles.socialButtons}>
-              <TouchableOpacity onPress={handleGoogleLogin} style={styles.socialButton}>
-                <Feather name="chrome" size={22} color={Colors.white} />
-                <Text style={styles.socialButtonText}>Google</Text>
-              </TouchableOpacity>
+          {/* Quick Email Login (collapsed by default) */}
+          <Animated.View style={[styles.quickEmailSection, { opacity: fadeAnim }]}>
+            <TouchableOpacity
+              style={styles.quickEmailToggle}
+              onPress={() => setShowEmailModal(true)}
+            >
+              <View style={styles.quickEmailLeft}>
+                <Feather name="mail" size={20} color={Colors.secondary} />
+                <Text style={styles.quickEmailText}>Sign in with email & password</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={Colors.textSecondary} />
+            </TouchableOpacity>
+          </Animated.View>
 
-              {Platform.OS === 'ios' && (
-                <TouchableOpacity onPress={handleAppleLogin} style={styles.socialButton}>
-                  <Feather name="command" size={22} color={Colors.white} />
-                  <Text style={styles.socialButtonText}>Apple</Text>
-                </TouchableOpacity>
-              )}
+          {/* Features Banner */}
+          <View style={styles.featuresBanner}>
+            <View style={styles.featureItem}>
+              <Feather name="zap" size={18} color={Colors.gold} />
+              <Text style={styles.featureText}>206+ Tools</Text>
+            </View>
+            <View style={styles.featureDivider} />
+            <View style={styles.featureItem}>
+              <Feather name="shield" size={18} color={Colors.success} />
+              <Text style={styles.featureText}>Secure</Text>
+            </View>
+            <View style={styles.featureDivider} />
+            <View style={styles.featureItem}>
+              <Feather name="clock" size={18} color={Colors.cyan} />
+              <Text style={styles.featureText}>7-Day Trial</Text>
             </View>
           </View>
 
@@ -227,11 +355,95 @@ const LoginScreen = () => {
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-              <Text style={styles.registerLink}>Sign Up</Text>
+              <Text style={styles.registerLink}>Sign Up Free</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Email Login Modal */}
+      <Modal
+        visible={showEmailModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEmailModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Sign in with Email</Text>
+              <TouchableOpacity onPress={() => setShowEmailModal(false)} style={styles.modalClose}>
+                <Feather name="x" size={24} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              <View style={[styles.inputContainer, emailError && styles.inputError]}>
+                <Feather name="mail" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email address"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+              </View>
+              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+
+              <View style={[styles.inputContainer, passwordError && styles.inputError]}>
+                <Feather name="lock" size={20} color={Colors.textTertiary} style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password"
+                  placeholderTextColor={Colors.textTertiary}
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                  <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color={Colors.textTertiary} />
+                </TouchableOpacity>
+              </View>
+              {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+
+              <TouchableOpacity
+                onPress={() => {
+                  setShowEmailModal(false);
+                  navigation.navigate('ForgotPassword');
+                }}
+                style={styles.forgotPassword}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  handleLogin();
+                }}
+                disabled={isLoading}
+                style={styles.modalLoginBtn}
+              >
+                <LinearGradient
+                  colors={['#FF6B35', '#F7931E']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.loginButtonGradient}
+                >
+                  {isLoading ? (
+                    <ActivityIndicator color={Colors.white} />
+                  ) : (
+                    <Text style={styles.loginButtonText}>Sign In</Text>
+                  )}
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </AnimatedBackground>
   );
 };
@@ -252,57 +464,171 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xl,
   },
   logoContainer: {
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
-  logo: {
-    width: 70,
-    height: 70,
-    backgroundColor: Colors.white,
-    borderRadius: 14,
+  logoGradient: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6B35',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Colors.white,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.textSecondary,
+  },
+  // Login Methods Grid
+  methodsSection: {
+    marginBottom: Spacing.xl,
+  },
+  methodsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  methodsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: Spacing.md,
+  },
+  methodCard: {
+    width: (width - Spacing.lg * 2 - Spacing.md) / 2,
+    backgroundColor: Colors.card,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  methodCardActive: {
+    borderColor: Colors.secondary,
+  },
+  methodGradient: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  methodName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.white,
+    marginBottom: 2,
+  },
+  methodDesc: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  // Quick Email Section
+  quickEmailSection: {
+    marginBottom: Spacing.xl,
+  },
+  quickEmailToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quickEmailLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  quickEmailText: {
+    fontSize: 15,
+    color: Colors.white,
+  },
+  // Features Banner
+  featuresBanner: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.surface,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.xl,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+  },
+  featureText: {
+    fontSize: 13,
+    color: Colors.white,
+    fontWeight: '500',
+  },
+  featureDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: Colors.border,
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  modalClose: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  logoInner: {
-    width: 40,
-    height: 40,
-    position: 'relative',
+  modalBody: {
+    padding: Spacing.lg,
   },
-  logoTopLeft: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: 24,
-    height: 24,
-    borderTopWidth: 5,
-    borderLeftWidth: 5,
-    borderColor: '#16132B',
-    borderTopLeftRadius: 6,
+  modalLoginBtn: {
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
   },
-  logoBottomRight: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 24,
-    height: 32,
-    backgroundColor: '#16132B',
-    borderTopLeftRadius: 6,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: Colors.white,
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: Colors.textSecondary,
-  },
-  form: {
-    marginBottom: Spacing.xl,
-  },
+  // Form Inputs
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -344,74 +670,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  loginButton: {
-    borderRadius: BorderRadius.md,
-    overflow: 'hidden',
-    marginBottom: Spacing.md,
-  },
   loginButtonGradient: {
     paddingVertical: 16,
     alignItems: 'center',
+    borderRadius: BorderRadius.md,
   },
   loginButtonText: {
     color: Colors.white,
     fontSize: 17,
     fontWeight: '600',
-  },
-  biometricButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.secondary,
-    gap: 8,
-  },
-  biometricText: {
-    color: Colors.secondary,
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  socialSection: {
-    marginBottom: Spacing.xl,
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    color: Colors.textTertiary,
-    paddingHorizontal: Spacing.md,
-    fontSize: 13,
-  },
-  socialButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 16,
-  },
-  socialButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.surface,
-    paddingVertical: 14,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    gap: 8,
-  },
-  socialButtonText: {
-    color: Colors.white,
-    fontSize: 15,
-    fontWeight: '500',
   },
   footer: {
     flexDirection: 'row',

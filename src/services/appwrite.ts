@@ -92,13 +92,17 @@ export const authService = {
       const successUrl = 'https://auth.marketingtool.pro/oauth/success';
       const failureUrl = 'https://auth.marketingtool.pro/oauth/failure';
 
-      // token=true makes Appwrite return userId and secret in redirect URL (needed for mobile)
-      const oauthUrl = `${APPWRITE_ENDPOINT}/account/sessions/oauth2/google?project=${APPWRITE_PROJECT_ID}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}&token=true`;
+      // Use SDK's createOAuth2Token method for mobile - returns userId & secret in URL
+      const oauthUrl = account.createOAuth2Token(
+        OAuthProvider.Google,
+        successUrl,
+        failureUrl
+      );
 
-      console.log('[OAuth] Opening URL:', oauthUrl);
+      console.log('[OAuth] Opening URL:', oauthUrl?.toString());
 
       // Nginx redirects auth.marketingtool.pro/oauth/success → marketingtool://oauth/success
-      const result = await WebBrowser.openAuthSessionAsync(oauthUrl, 'marketingtool://');
+      const result = await WebBrowser.openAuthSessionAsync(oauthUrl?.toString() || '', 'marketingtool://');
 
       console.log('[OAuth] Browser result type:', result.type);
 
@@ -156,11 +160,15 @@ export const authService = {
       const successUrl = 'https://auth.marketingtool.pro/oauth/success';
       const failureUrl = 'https://auth.marketingtool.pro/oauth/failure';
 
-      // token=true makes Appwrite return userId and secret in redirect URL (needed for mobile)
-      const oauthUrl = `${APPWRITE_ENDPOINT}/account/sessions/oauth2/apple?project=${APPWRITE_PROJECT_ID}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}&token=true`;
+      // Use SDK's createOAuth2Token method for mobile - returns userId & secret in URL
+      const oauthUrl = account.createOAuth2Token(
+        OAuthProvider.Apple,
+        successUrl,
+        failureUrl
+      );
 
       // Nginx redirects auth.marketingtool.pro/oauth/success → marketingtool://oauth/success
-      const result = await WebBrowser.openAuthSessionAsync(oauthUrl, 'marketingtool://');
+      const result = await WebBrowser.openAuthSessionAsync(oauthUrl?.toString() || '', 'marketingtool://');
 
       if (result.type === 'success' && result.url) {
         if (result.url.includes('oauth/success') || result.url.includes('secret=')) {
@@ -204,11 +212,15 @@ export const authService = {
       const successUrl = 'https://auth.marketingtool.pro/oauth/success';
       const failureUrl = 'https://auth.marketingtool.pro/oauth/failure';
 
-      // token=true makes Appwrite return userId and secret in redirect URL (needed for mobile)
-      const oauthUrl = `${APPWRITE_ENDPOINT}/account/sessions/oauth2/facebook?project=${APPWRITE_PROJECT_ID}&success=${encodeURIComponent(successUrl)}&failure=${encodeURIComponent(failureUrl)}&token=true`;
+      // Use SDK's createOAuth2Token method for mobile - returns userId & secret in URL
+      const oauthUrl = account.createOAuth2Token(
+        OAuthProvider.Facebook,
+        successUrl,
+        failureUrl
+      );
 
       // Nginx redirects auth.marketingtool.pro/oauth/success → marketingtool://oauth/success
-      const result = await WebBrowser.openAuthSessionAsync(oauthUrl, 'marketingtool://');
+      const result = await WebBrowser.openAuthSessionAsync(oauthUrl?.toString() || '', 'marketingtool://');
 
       if (result.type === 'success' && result.url) {
         if (result.url.includes('oauth/success') || result.url.includes('secret=')) {
