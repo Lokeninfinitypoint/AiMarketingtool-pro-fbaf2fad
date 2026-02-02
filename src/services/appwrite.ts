@@ -13,16 +13,17 @@ const APPWRITE_PROJECT_ID = '6952c8a0002d3365625d';
 const APPWRITE_PLATFORM = 'pro.marketingtool.app';
 
 // Database IDs
-export const DATABASE_ID = 'marketingtool_db';
+export const DATABASE_ID = 'main';
 export const COLLECTIONS = {
   USERS: 'users',
   TOOLS: 'tools',
   GENERATIONS: 'generations',
   SUBSCRIPTIONS: 'subscriptions',
+  CREDIT_USAGE: 'credit_usage',
   CHAT_SESSIONS: 'chat_sessions',
   CHAT_MESSAGES: 'chat_messages',
   FAVORITES: 'favorites',
-  USAGE: 'usage',
+  USAGE: 'credit_usage',
 };
 
 // Storage Bucket IDs

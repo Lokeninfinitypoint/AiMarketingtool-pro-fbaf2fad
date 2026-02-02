@@ -1,15 +1,13 @@
 // AI Service for Marketing Tool Content Generation
-// Connects to Windmill for REAL AI-powered content generation using Claude
+// Routes through Appwrite Function "tool-executor" → Windmill → Claude
+// NO direct Windmill calls — clients never talk to Windmill directly
 
-import Constants from 'expo-constants';
+import { functions, account } from './appwrite';
 
-// Windmill API Configuration
-const WINDMILL_BASE = 'https://wm.marketingtool.pro';
-const WINDMILL_WORKSPACE = 'marketingtool-pro';
-const WINDMILL_SCRIPT_PATH = 'f/mobile/ai_generate';
-const WINDMILL_TOKEN = 'wm_token_marketingtool_2024';
+const TOOL_EXECUTOR_FUNCTION_ID = 'tool-executor';
+const NEXTJS_API_BASE = 'https://app.marketingtool.pro';
 
-interface AIGenerationRequest {
+export interface AIGenerationRequest {
   toolSlug: string;
   toolName: string;
   inputs: Record<string, any>;
@@ -19,7 +17,7 @@ interface AIGenerationRequest {
   userId?: string;
 }
 
-interface AIGenerationResponse {
+export interface AIGenerationResponse {
   outputs: string[];
   success: boolean;
   error?: string;
@@ -27,176 +25,173 @@ interface AIGenerationResponse {
   model?: string;
 }
 
-// Tool-specific system prompts for all 206+ marketing tools
-const TOOL_SYSTEM_PROMPTS: Record<string, string> = {
-  // Google Ads Tools
-  'google-ads-headline': 'You are an expert Google Ads copywriter. Create compelling, high-CTR headlines that are under 30 characters each. Focus on urgency, benefits, and keywords.',
-  'google-ads-description': 'You are an expert Google Ads copywriter. Write persuasive ad descriptions under 90 characters that convert. Include clear CTAs and unique value propositions.',
-  'google-pmax': 'You are a Performance Max campaign specialist. Generate complete asset groups with headlines, descriptions, and creative concepts optimized for conversions.',
-  'google-display-copy': 'You are a display advertising expert. Create attention-grabbing copy for Google Display Network that drives clicks.',
-  'google-shopping-feed': 'You are a Google Shopping optimization expert. Create SEO-optimized product titles and descriptions that rank and convert.',
-  'google-rsa': 'You are a Responsive Search Ads specialist. Generate 15 unique headlines and 4 descriptions that work together for maximum combinations.',
-  'google-extensions': 'You are a Google Ads extensions expert. Create compelling sitelinks, callouts, and structured snippets.',
-  'google-keyword-ai': 'You are a keyword research expert. Generate relevant keywords with search intent analysis.',
+// Main AI Generation — calls Appwrite Function, falls back to Next.js API
+export async function generateAIContent(request: AIGenerationRequest): Promise<AIGenerationResponse> {
+  const { toolSlug, toolName, inputs, tone, language, outputCount = 3, userId } = request;
 
-  // SEO Tools
-  'seo-meta-title': 'You are an SEO specialist. Create click-worthy meta titles under 60 characters with target keywords.',
-  'seo-meta-description': 'You are an SEO copywriter. Write compelling meta descriptions (150-160 chars) that increase CTR.',
-  'seo-blog-writer': 'You are an SEO content writer. Create comprehensive, well-structured blog posts optimized for search engines.',
-  'schema-markup': 'You are a technical SEO expert. Generate valid JSON-LD schema markup code.',
-  'internal-links': 'You are an SEO strategist. Suggest optimal internal linking opportunities with anchor text.',
-
-  // Analytics Tools
-  'ga4-reports': 'You are a Google Analytics expert. Provide actionable insights and recommendations.',
-  'ads-grader': 'You are a Google Ads performance analyst. Analyze accounts and provide optimization recommendations.',
-
-  // Facebook/Meta Ads Tools
-  'facebook-ad-copy': 'You are a Facebook advertising expert. Create scroll-stopping ad copy that converts. Primary text, headline, and description.',
-  'facebook-carousel': 'You are a carousel ad specialist. Write cohesive copy for multiple carousel cards.',
-  'facebook-lead-forms': 'You are a lead generation expert. Design high-converting lead form content.',
-  'facebook-video-script': 'You are a video ad scriptwriter. Create engaging scripts with hooks, benefits, and CTAs.',
-  'facebook-retargeting': 'You are a retargeting specialist. Write copy that re-engages and converts.',
-
-  // Instagram Tools
-  'instagram-captions': 'You are an Instagram content creator. Write engaging captions with hooks, CTAs, and relevant hashtags.',
-  'instagram-reels': 'You are a Reels content strategist. Create viral-worthy scripts with hooks and trends.',
-  'instagram-stories': 'You are an Instagram Stories expert. Design engaging story sequences.',
-  'instagram-hashtags': 'You are a hashtag research expert. Find the best hashtags for reach and engagement.',
-  'instagram-bio': 'You are an Instagram branding expert. Create compelling bio copy.',
-
-  // Social Media Tools
-  'social-calendar': 'You are a social media strategist. Create comprehensive content calendars.',
-  'viral-tweets': 'You are a Twitter/X content expert. Write engaging tweets that get shares.',
-  'linkedin-posts': 'You are a LinkedIn content creator. Write professional posts that build authority.',
-
-  // Shopify/E-commerce Tools
-  'shopify-titles': 'You are an e-commerce SEO expert. Create optimized product titles.',
-  'product-descriptions': 'You are a product copywriter. Write compelling descriptions that sell.',
-  'shopify-collections': 'You are an e-commerce content writer. Create engaging collection descriptions.',
-  'product-bullets': 'You are a conversion copywriter. Create benefit-driven bullet points.',
-  'amazon-listings': 'You are an Amazon listing expert. Optimize for A9 algorithm.',
-  'shopping-titles': 'You are a Google Shopping expert. Optimize product feed titles.',
-  'facebook-dynamic': 'You are a dynamic ads specialist. Create catalog-ready ad copy.',
-
-  // Email Marketing Tools
-  'abandoned-cart': 'You are an email marketing expert. Write recovery sequences that convert.',
-  'welcome-emails': 'You are an email strategist. Create engaging welcome sequences.',
-  'launch-emails': 'You are a product launch specialist. Write excitement-building emails.',
-  'email-subjects': 'You are an email copywriter. Generate high open-rate subject lines.',
-
-  // E-commerce SEO
-  'ecom-category-seo': 'You are an e-commerce SEO specialist. Optimize category pages.',
-  'review-response': 'You are a customer service expert. Write professional review responses.',
-
-  // AI Agents
-  'ai-campaign-optimizer': 'You are an AI marketing strategist. Provide campaign optimization frameworks.',
-  'ai-content-planner': 'You are a content strategy AI. Create comprehensive content plans.',
-  'ai-chatbot': 'You are a chatbot designer. Create conversation flows and responses.',
-  'ai-analyzer': 'You are an analytics AI. Create performance analysis frameworks.',
-  'ai-budget': 'You are a budget optimization AI. Provide allocation strategies.',
-
-  // Content Creation
-  'meme-generator': 'You are a viral content creator. Generate meme concepts and text.',
-  'ai-image-caption': 'You are a social media expert. Create platform-specific captions.',
-  'quote-image': 'You are a quote designer. Format quotes for social sharing.',
-  'thumbnail-generator': 'You are a YouTube thumbnail expert. Create attention-grabbing concepts.',
-  'story-templates': 'You are a story design expert. Create template concepts.',
-};
-
-// Build the prompt based on tool type
-function buildPrompt(toolSlug: string, toolName: string, inputs: Record<string, any>, outputCount: number): string {
+  // Build user prompt from inputs
   const inputsText = Object.entries(inputs)
     .filter(([key]) => !['outputCount', 'tone', 'language'].includes(key))
     .map(([key, value]) => `${key}: ${value}`)
     .join('\n');
 
-  const tone = inputs.tone || 'professional';
-  const language = inputs.language || 'English';
+  const userPrompt = `${toolName}\n\n${inputsText}\n\nTone: ${tone || 'professional'}\nLanguage: ${language || 'English'}`;
 
-  return `Generate ${outputCount} unique, high-quality variations of marketing content.
-
-TOOL: ${toolName}
-
-USER INPUTS:
-${inputsText}
-
-TONE: ${tone}
-LANGUAGE: ${language}
-
-REQUIREMENTS:
-- Create ${outputCount} distinct variations
-- Each variation should be complete and ready to use
-- Be specific, actionable, and conversion-focused
-- Follow best practices for ${toolName}
-- Separate each variation with "---VARIATION---"
-
-Generate the content now:`;
-}
-
-// Main AI Generation Function - Calls Windmill backend
-export async function generateAIContent(request: AIGenerationRequest): Promise<AIGenerationResponse> {
-  const { toolSlug, toolName, inputs, tone, language, outputCount = 3, userId } = request;
-
+  // Primary: Appwrite Function (tool-executor → Windmill → Claude)
   try {
-    // Build the prompts
-    const userPrompt = buildPrompt(toolSlug, toolName, { ...inputs, tone, language }, outputCount);
-    const systemPrompt = TOOL_SYSTEM_PROMPTS[toolSlug] || `You are an expert marketing AI. Generate high-quality content for ${toolName}.`;
+    console.log(`[AI] Executing tool-executor for: ${toolSlug}`);
 
-    // Call Windmill API - Primary method using Claude Opus 4.5 / Haiku 3.5
-    const windmillUrl = `${WINDMILL_BASE}/api/w/${WINDMILL_WORKSPACE}/jobs/run_wait_result/p/${WINDMILL_SCRIPT_PATH}`;
+    const execution = await functions.createExecution(
+      TOOL_EXECUTOR_FUNCTION_ID,
+      JSON.stringify({
+        tool_slug: toolSlug,
+        tool_name: toolName,
+        input: userPrompt,
+        inputs: { ...inputs, tone: tone || 'professional', language: language || 'English' },
+        output_count: outputCount,
+        user_id: userId,
+        options: { tone: tone || 'professional', language: language || 'English' },
+      }),
+      false,  // async = false (wait for result)
+      '/',    // path
+      'POST', // method
+    );
 
-    console.log(`[AI] Calling Windmill: ${toolSlug}`);
+    if (execution.responseStatusCode >= 200 && execution.responseStatusCode < 300) {
+      const result = parseExecutionResponse(execution.responseBody, outputCount);
+      if (result.success && result.outputs.length > 0) {
+        console.log(`[AI] Function success: ${result.outputs.length} outputs`);
+        return result;
+      }
+    }
 
-    const response = await fetch(windmillUrl, {
+    console.log(`[AI] Function returned status ${execution.responseStatusCode}, trying fallback`);
+  } catch (error: any) {
+    console.log(`[AI] Function error: ${error.message}, trying fallback`);
+  }
+
+  // Fallback: Call Next.js API directly (middleware supports Bearer auth)
+  try {
+    console.log(`[AI] Fallback: calling Next.js API for ${toolSlug}`);
+
+    const jwt = await account.createJWT();
+
+    const response = await fetch(`${NEXTJS_API_BASE}/api/tools/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${WINDMILL_TOKEN}`,
+        'Authorization': `Bearer ${jwt.jwt}`,
       },
       body: JSON.stringify({
-        tool_slug: toolSlug,
-        tool_name: toolName,
-        inputs: { ...inputs, tone, language },
-        system_prompt: systemPrompt,
-        user_prompt: userPrompt,
-        output_count: outputCount,
-        user_id: userId,
+        tool: toolSlug,
+        input: userPrompt,
+        options: { tone: tone || 'professional', language: language || 'English' },
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('[AI] Windmill error:', response.status, errorText);
-      throw new Error(`AI service error: ${response.status}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success && data.output) {
+        console.log(`[AI] API fallback success`);
+        return {
+          outputs: splitOutputs(data.output, outputCount),
+          success: true,
+          model: 'claude',
+        };
+      }
     }
 
-    const result = await response.json();
+    // Try the simpler /api/generate endpoint
+    const response2 = await fetch(`${NEXTJS_API_BASE}/api/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${jwt.jwt}`,
+      },
+      body: JSON.stringify({
+        tool: toolSlug,
+        input: userPrompt,
+        tone: tone || 'Professional',
+        language: language || 'English',
+      }),
+    });
 
-    console.log(`[AI] Success: ${result.model}, tokens: ${result.tokensUsed}`);
+    if (response2.ok) {
+      const data2 = await response2.json();
+      if (data2.result) {
+        return {
+          outputs: splitOutputs(data2.result, outputCount),
+          success: true,
+          model: data2.model || 'claude',
+        };
+      }
+    }
+  } catch (fallbackError: any) {
+    console.error('[AI] Fallback also failed:', fallbackError.message);
+  }
 
-    // Parse outputs - handle different response formats
-    let outputs = result.outputs || [];
-    if (typeof outputs === 'string') {
-      outputs = splitOutputs(outputs, outputCount);
-    } else if (Array.isArray(outputs) && outputs.length === 1 && typeof outputs[0] === 'string') {
-      // If single string in array, try to split it
-      outputs = splitOutputs(outputs[0], outputCount);
+  return {
+    outputs: [],
+    success: false,
+    error: 'Unable to generate content. Please check your connection and try again.',
+  };
+}
+
+// Parse the Appwrite Function execution response
+function parseExecutionResponse(responseBody: string, outputCount: number): AIGenerationResponse {
+  try {
+    const result = JSON.parse(responseBody);
+
+    // Handle various response formats from the function
+    if (result.error) {
+      return { outputs: [], success: false, error: result.error };
     }
 
-    return {
-      outputs,
-      success: true,
-      tokensUsed: result.tokensUsed,
-      model: result.model,
-    };
+    // Format 1: { outputs: [...] }
+    if (result.outputs) {
+      let outputs = result.outputs;
+      if (typeof outputs === 'string') {
+        outputs = splitOutputs(outputs, outputCount);
+      } else if (Array.isArray(outputs) && outputs.length === 1 && typeof outputs[0] === 'string') {
+        outputs = splitOutputs(outputs[0], outputCount);
+      }
+      return {
+        outputs,
+        success: true,
+        tokensUsed: result.tokensUsed || result.tokens_used,
+        model: result.model,
+      };
+    }
 
-  } catch (error: any) {
-    console.error('[AI] Generation Error:', error);
-    return {
-      outputs: [],
-      success: false,
-      error: error.message || 'Failed to generate content. Please try again.',
-    };
+    // Format 2: { result: "..." } or { output: "..." }
+    const content = result.result || result.output || result.content || result.text;
+    if (content) {
+      return {
+        outputs: splitOutputs(String(content), outputCount),
+        success: true,
+        tokensUsed: result.tokensUsed || result.tokens_used,
+        model: result.model,
+      };
+    }
+
+    // Format 3: Raw string response
+    if (typeof result === 'string' && result.length > 20) {
+      return {
+        outputs: splitOutputs(result, outputCount),
+        success: true,
+      };
+    }
+
+    return { outputs: [], success: false, error: 'Unexpected response format' };
+  } catch {
+    // Response might be plain text, not JSON
+    if (responseBody && responseBody.length > 20) {
+      return {
+        outputs: splitOutputs(responseBody, outputCount),
+        success: true,
+      };
+    }
+    return { outputs: [], success: false, error: 'Failed to parse response' };
   }
 }
 
@@ -233,23 +228,12 @@ function splitOutputs(content: string, count: number): string[] {
 // Check if AI service is available
 export async function checkAIAvailability(): Promise<{ available: boolean; method: string }> {
   try {
-    // Quick health check to Windmill
-    const healthUrl = `${WINDMILL_BASE}/api/version`;
-    const response = await fetch(healthUrl, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${WINDMILL_TOKEN}`,
-      },
-    });
-
-    if (response.ok) {
-      return { available: true, method: 'windmill-claude' };
-    }
-  } catch (error) {
-    console.log('[AI] Health check failed:', error);
+    // Check Appwrite Function health by verifying current user session
+    await account.get();
+    return { available: true, method: 'appwrite-function' };
+  } catch {
+    return { available: false, method: 'none' };
   }
-
-  return { available: false, method: 'none' };
 }
 
 export default generateAIContent;
