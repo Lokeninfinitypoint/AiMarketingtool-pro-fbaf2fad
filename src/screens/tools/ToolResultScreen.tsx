@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Share,
   Alert,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -17,6 +18,21 @@ import { RootStackParamList } from '../../navigation/AppNavigator';
 import { useToolsStore } from '../../store/toolsStore';
 import { Colors, Gradients, Spacing, BorderRadius } from '../../constants/theme';
 import AnimatedBackground from '../../components/common/AnimatedBackground';
+
+// Desktop-preferred tool categories (big/complex tools — show preview on mobile)
+const DESKTOP_PREFERRED_CATEGORIES = [
+  'google-ads', 'google-analytics', 'ai-agents',
+];
+
+// Desktop-preferred tool slugs (specific big tools regardless of category)
+const DESKTOP_PREFERRED_SLUGS = [
+  'google-pmax', 'ga4-reports', 'ads-grader', 'schema-markup',
+  'social-calendar', 'ai-campaign-optimizer', 'ai-content-planner',
+  'ai-analyzer', 'ai-budget',
+];
+
+// Character threshold — outputs longer than this get the "best on desktop" banner
+const LARGE_OUTPUT_THRESHOLD = 2000;
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteType = RouteProp<RootStackParamList, 'ToolResult'>;
@@ -62,6 +78,29 @@ const ToolResultScreen = () => {
 
   const [selectedOutput, setSelectedOutput] = useState<string | null>(outputs[0]?.id);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showFullContent, setShowFullContent] = useState(false);
+
+  // Detect if this is a large/desktop-preferred result
+  const isLargeOutput = useMemo(() => {
+    if (!tool) return false;
+    const isDesktopCategory = DESKTOP_PREFERRED_CATEGORIES.includes(tool.category);
+    const isDesktopSlug = DESKTOP_PREFERRED_SLUGS.includes(tool.slug);
+    const isLongContent = outputs.some(o => o.content.length > LARGE_OUTPUT_THRESHOLD);
+    return isDesktopCategory || isDesktopSlug || isLongContent;
+  }, [tool, outputs]);
+
+  const desktopUrl = tool ? `https://app.marketingtool.pro/dashboard/tool/${tool.slug}` : '';
+
+  const handleViewOnDesktop = () => {
+    Linking.openURL(desktopUrl);
+  };
+
+  const handleEmailResult = async () => {
+    const allContent = outputs.map(o => o.content).join('\n\n---\n\n');
+    const subject = encodeURIComponent(`${tool?.name || 'Tool'} Result - MarketingTool`);
+    const body = encodeURIComponent(allContent);
+    Linking.openURL(`mailto:?subject=${subject}&body=${body}`);
+  };
 
   const handleCopy = async (content: string, id: string) => {
     await Clipboard.setStringAsync(content);
@@ -183,7 +222,50 @@ const ToolResultScreen = () => {
               selectedOutput !== output.id && styles.outputCardHidden,
             ]}
           >
-            <Text style={styles.outputText}>{output.content}</Text>
+            {/* Show truncated preview for large outputs, full for small tools */}
+            {isLargeOutput && !showFullContent ? (
+              <>
+                <Text style={styles.outputText} numberOfLines={12}>
+                  {output.content}
+                </Text>
+                <TouchableOpacity
+                  style={styles.showMoreBtn}
+                  onPress={() => setShowFullContent(true)}
+                >
+                  <Feather name="chevron-down" size={16} color={Colors.primary} />
+                  <Text style={styles.showMoreText}>Show full result</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.outputText}>{output.content}</Text>
+            )}
+
+            {/* Desktop banner for large/complex tool outputs */}
+            {isLargeOutput && (
+              <View style={styles.desktopBanner}>
+                <View style={styles.desktopBannerHeader}>
+                  <Feather name="monitor" size={18} color={Colors.primary} />
+                  <Text style={styles.desktopBannerTitle}>Best viewed on desktop</Text>
+                </View>
+                <Text style={styles.desktopBannerText}>
+                  The tool completed successfully. This result is long, so we show a preview on mobile for readability.
+                </Text>
+                <View style={styles.desktopActions}>
+                  <TouchableOpacity style={styles.desktopActionBtn} onPress={handleViewOnDesktop}>
+                    <Feather name="external-link" size={16} color={Colors.white} />
+                    <Text style={styles.desktopActionText}>View Full on Desktop</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.desktopActionBtnOutline} onPress={handleEmailResult}>
+                    <Feather name="mail" size={16} color={Colors.primary} />
+                    <Text style={styles.desktopActionOutlineText}>Email Result</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.desktopActionBtnOutline} onPress={() => handleCopy(output.content, output.id)}>
+                    <Feather name="copy" size={16} color={Colors.primary} />
+                    <Text style={styles.desktopActionOutlineText}>Copy Summary</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
 
             {/* Action Buttons */}
             <View style={styles.outputActions}>
@@ -404,6 +486,78 @@ const styles = StyleSheet.create({
     color: Colors.white,
     lineHeight: 26,
     marginBottom: Spacing.lg,
+  },
+  showMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+    gap: 4,
+  },
+  showMoreText: {
+    fontSize: 14,
+    color: Colors.primary,
+    fontWeight: '600',
+  },
+  desktopBanner: {
+    backgroundColor: Colors.primary + '12',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary + '30',
+  },
+  desktopBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  desktopBannerTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  desktopBannerText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    lineHeight: 18,
+    marginBottom: Spacing.md,
+  },
+  desktopActions: {
+    gap: Spacing.sm,
+  },
+  desktopActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.sm,
+    gap: 8,
+    marginBottom: 6,
+  },
+  desktopActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  desktopActionBtnOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.primary + '50',
+    paddingVertical: 10,
+    borderRadius: BorderRadius.sm,
+    gap: 8,
+    marginBottom: 6,
+  },
+  desktopActionOutlineText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.primary,
   },
   outputActions: {
     flexDirection: 'row',
