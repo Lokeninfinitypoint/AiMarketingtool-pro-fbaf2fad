@@ -1,13 +1,43 @@
-// Firebase Phone Auth Service
+// Firebase Phone Auth Service with App Check
 // Project: marketing-tool-484720 (same as Google OAuth + Ads)
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
-
-export interface PhoneAuthResult {
-  verificationId: string;
-  confirm: FirebaseAuthTypes.ConfirmationResult | null;
-}
+import appCheck from '@react-native-firebase/app-check';
 
 let confirmationResult: FirebaseAuthTypes.ConfirmationResult | null = null;
+let appCheckInitialized = false;
+
+/**
+ * Initialize Firebase App Check (required for Auth)
+ */
+export const initializeAppCheck = async (): Promise<void> => {
+  if (appCheckInitialized) return;
+
+  try {
+    const rnfbProvider = appCheck().newReactNativeFirebaseAppCheckProvider();
+    rnfbProvider.configure({
+      android: {
+        provider: __DEV__ ? 'debug' : 'playIntegrity',
+        debugToken: __DEV__ ? 'YOUR-DEBUG-TOKEN' : undefined,
+      },
+      apple: {
+        provider: __DEV__ ? 'debug' : 'deviceCheck',
+        debugToken: __DEV__ ? 'YOUR-DEBUG-TOKEN' : undefined,
+      },
+    });
+
+    await appCheck().initializeAppCheck({
+      provider: rnfbProvider,
+      isTokenAutoRefreshEnabled: true,
+    });
+
+    appCheckInitialized = true;
+    console.log('Firebase App Check initialized');
+  } catch (error) {
+    console.error('App Check initialization error:', error);
+    // Continue anyway for development
+    appCheckInitialized = true;
+  }
+};
 
 export const firebasePhoneAuth = {
   /**
@@ -16,6 +46,9 @@ export const firebasePhoneAuth = {
    */
   async sendOTP(phoneNumber: string): Promise<string> {
     try {
+      // Ensure App Check is initialized
+      await initializeAppCheck();
+
       // Format phone number - auto add +91 for 10-digit Indian numbers
       let formattedPhone = phoneNumber.replace(/[\s\-()]/g, '');
       if (formattedPhone.length === 10 && /^[6-9]\d{9}$/.test(formattedPhone)) {
